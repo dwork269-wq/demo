@@ -5,9 +5,9 @@ import './App.css';
 function App() {
   const [formData, setFormData] = useState({
     password: '',
-    focus_area: '',
-    duration: '',
-    mood: ''
+    disease: '',
+    symptom: '',
+    additional_instruction: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [meditation, setMeditation] = useState(null);
@@ -40,6 +40,34 @@ function App() {
       if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**')) {
         const content = part.slice(1, -1);
         return <em key={index} className="italic-text">{content}</em>;
+      }
+      
+      // Handle ElevenLabs tags - convert to visual indicators
+      if (part.startsWith('[') && part.endsWith(']')) {
+        const tagContent = part.slice(1, -1).toLowerCase();
+        
+        // Handle breathing tags
+        if (tagContent === 'inhale') {
+          return <span key={index} className="breathing-indicator">🫁 Inhale</span>;
+        }
+        if (tagContent === 'exhale') {
+          return <span key={index} className="breathing-indicator">🫁 Exhale</span>;
+        }
+        
+        // Handle pause tags
+        if (tagContent.startsWith('pause')) {
+          const timeMatch = tagContent.match(/pause (\d+) seconds?/);
+          const seconds = timeMatch ? timeMatch[1] : '2';
+          return <span key={index} className="pause-indicator">⏸️ {seconds}s pause</span>;
+        }
+        
+        // Handle whisper tag
+        if (tagContent === 'whisper') {
+          return <span key={index} className="whisper-indicator">🤫 Whisper</span>;
+        }
+        
+        // For other tags, just remove them
+        return null;
       }
       
       // Handle SSML tags - convert to visual indicators
@@ -99,8 +127,8 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>🧘 Custom Meditation Creator</h1>
-        <p>Create personalized meditations powered by AI</p>
+        <h1>🧘 Quantum Healing Meditation Creator</h1>
+        <p>Create personalized quantum healing meditations powered by AI</p>
       </header>
 
       <main className="App-main">
@@ -121,62 +149,42 @@ function App() {
               </div>
 
               <div className="form-group">
-                <label htmlFor="focus_area">What would you like to focus on?</label>
-                <select
-                  id="focus_area"
-                  name="focus_area"
-                  value={formData.focus_area}
+                <label htmlFor="disease">What disease or condition would you like to address?</label>
+                <input
+                  type="text"
+                  id="disease"
+                  name="disease"
+                  value={formData.disease}
                   onChange={handleInputChange}
                   required
-                >
-                  <option value="">Select a focus area</option>
-                  <option value="stress relief">Stress Relief</option>
-                  <option value="sleep preparation">Sleep Preparation</option>
-                  <option value="anxiety management">Anxiety Management</option>
-                  <option value="mindfulness">Mindfulness</option>
-                  <option value="self-compassion">Self-Compassion</option>
-                  <option value="focus and concentration">Focus & Concentration</option>
-                  <option value="emotional healing">Emotional Healing</option>
-                  <option value="gratitude practice">Gratitude Practice</option>
-                </select>
+                  placeholder="e.g., anxiety, chronic pain, insomnia"
+                />
               </div>
 
               <div className="form-group">
-                <label htmlFor="duration">How long would you like to meditate?</label>
-                <select
-                  id="duration"
-                  name="duration"
-                  value={formData.duration}
+                <label htmlFor="symptom">What specific symptom are you experiencing?</label>
+                <input
+                  type="text"
+                  id="symptom"
+                  name="symptom"
+                  value={formData.symptom}
                   onChange={handleInputChange}
                   required
-                >
-                  <option value="">Select duration</option>
-                  <option value="5 minutes">5 minutes</option>
-                  <option value="10 minutes">10 minutes</option>
-                  <option value="15 minutes">15 minutes</option>
-                  <option value="20 minutes">20 minutes</option>
-                  <option value="30 minutes">30 minutes</option>
-                </select>
+                  placeholder="e.g., racing thoughts, muscle tension, difficulty falling asleep"
+                />
               </div>
 
               <div className="form-group">
-                <label htmlFor="mood">What's your current mood or energy level?</label>
-                <select
-                  id="mood"
-                  name="mood"
-                  value={formData.mood}
+                <label htmlFor="additional_instruction">Any additional instructions or preferences?</label>
+                <textarea
+                  id="additional_instruction"
+                  name="additional_instruction"
+                  value={formData.additional_instruction}
                   onChange={handleInputChange}
                   required
-                >
-                  <option value="">Select your mood</option>
-                  <option value="calm and peaceful">Calm & Peaceful</option>
-                  <option value="energized and alert">Energized & Alert</option>
-                  <option value="tired and drained">Tired & Drained</option>
-                  <option value="anxious and restless">Anxious & Restless</option>
-                  <option value="focused and determined">Focused & Determined</option>
-                  <option value="emotional and sensitive">Emotional & Sensitive</option>
-                  <option value="neutral and balanced">Neutral & Balanced</option>
-                </select>
+                  placeholder="e.g., focus on breathing, visualize healing light, gentle guidance"
+                  rows="3"
+                />
               </div>
 
               <button type="submit" disabled={isLoading} className="generate-btn">
@@ -195,9 +203,11 @@ function App() {
                 <div className="spinner"></div>
                 <p>AI is crafting your personalized meditation...</p>
                 <p className="loading-steps">
-                  ✨ Generating meditation text<br/>
-                  🎙️ Converting to speech<br/>
-                  🎵 Adding background music<br/>
+                  ✨ Generating quantum healing meditation<br/>
+                  📖 Parsing into 3 chapters<br/>
+                  🎙️ Converting chapters to speech<br/>
+                  ⏸️ Adding 1-minute breaks<br/>
+                  🎵 Mixing with background music<br/>
                   🔗 Finalizing your meditation
                 </p>
               </div>
@@ -229,8 +239,8 @@ function App() {
                   // Skip empty lines
                   if (line.trim() === '') return null;
                   
-                  // Skip chapter tags
-                  if (line.includes('[CHAPTER_') && (line.includes('_START]') || line.includes('_END]'))) {
+                  // Skip break tags (they're used for chapter separation)
+                  if (line.includes('<break>')) {
                     return null;
                   }
                   
@@ -267,7 +277,7 @@ function App() {
       </main>
 
       <footer className="App-footer">
-        <p>Powered by OpenAI GPT-3.5 & ElevenLabs AI</p>
+        <p>Powered by OpenAI GPT-3.5 & ElevenLabs AI - Quantum Healing Meditation</p>
       </footer>
     </div>
   );

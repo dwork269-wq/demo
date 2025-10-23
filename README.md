@@ -1,14 +1,14 @@
-# Custom Meditation App - AI-Powered Personalized Meditations
+# Quantum Healing Meditation App - AI-Powered Personalized Meditations
 
-A full-stack application that creates custom meditations using AI. Users input their preferences, and the app generates personalized meditation scripts, converts them to speech, and creates a complete audio experience with background music.
+A full-stack application that creates custom quantum healing meditations using AI. Users input their disease, symptoms, and additional instructions, and the app generates personalized meditation scripts based on quantum healing principles, converts them to speech, and creates a complete audio experience with background music.
 
 ## Features
 
-- **AI-Powered Meditation Generation**: Uses OpenAI GPT-3.5 to create personalized meditation scripts
-- **Text-to-Speech**: Converts meditation text to natural speech using ElevenLabs v3 with Priyanka Sogam's voice
-- **SSML Support**: Uses Speech Synthesis Markup Language for pace, emphasis, and pauses
-- **Audio Processing**: Combines speech with background music and silence intervals
-- **3-Chapter Structure**: Automatically parses meditations into structured chapters
+- **AI-Powered Quantum Healing Meditations**: Uses OpenAI GPT-3.5 to create personalized meditation scripts based on quantum healing principles
+- **Text-to-Speech**: Converts meditation text to natural speech using ElevenLabs v3 with specialized voice effects
+- **ElevenLabs Tags Support**: Uses specialized tags like [inhale], [exhale], [pause], [whisper] for enhanced audio experience
+- **Audio Processing**: Combines speech with background music and 1-minute silence breaks between chapters
+- **3-Chapter Structure**: Automatically parses meditations into structured chapters using <break> tags
 - **Modern UI**: Beautiful, responsive React frontend with glassmorphism design
 - **Simple Authentication**: Password-protected access (no complex user management)
 
@@ -17,7 +17,7 @@ A full-stack application that creates custom meditations using AI. Users input t
 ### Backend
 - **Flask**: Python web framework
 - **OpenAI API**: GPT-3.5 for meditation text generation
-- **ElevenLabs API v3**: High-quality text-to-speech conversion with Priyanka Sogam's voice and SSML support
+- **ElevenLabs API v3**: High-quality text-to-speech conversion with specialized voice effects and ElevenLabs tags support
 - **Pydub**: Audio processing and mixing
 - **Gunicorn**: WSGI server for production
 
@@ -125,9 +125,9 @@ Generates a custom meditation based on user inputs.
 ```json
 {
   "password": "meditation2024",
-  "focus_area": "stress relief",
-  "duration": "10 minutes",
-  "mood": "anxious and restless"
+  "disease": "anxiety",
+  "symptom": "racing thoughts",
+  "additional_instruction": "focus on breathing and gentle guidance"
 }
 ```
 
@@ -149,40 +149,27 @@ Health check endpoint.
 
 ## How It Works
 
-1. **User Input**: User selects focus area, duration, and mood
-2. **AI Generation**: OpenAI creates a personalized meditation script with 3 chapters
-3. **Text Parsing**: Script is parsed into 3 chapters using regex patterns
-4. **Speech Synthesis**: Each chapter is converted to speech using ElevenLabs
-5. **Audio Mixing**: Chapters are combined with 1-minute silence intervals and background music
+1. **User Input**: User provides disease, symptom, and additional instructions
+2. **AI Generation**: OpenAI creates a personalized quantum healing meditation script with 3 chapters
+3. **Text Parsing**: Script is parsed into 3 chapters using <break> tags
+4. **Speech Synthesis**: Each chapter is converted to speech using ElevenLabs with specialized tags
+5. **Audio Mixing**: Chapters are combined with 1-minute silence breaks and background music
 6. **Delivery**: Final meditation is served to the user
 
 ## Customization
 
-### Meditation Focus Areas
-- Stress Relief
-- Sleep Preparation
-- Anxiety Management
-- Mindfulness
-- Self-Compassion
-- Focus & Concentration
-- Emotional Healing
-- Gratitude Practice
+### Input Fields
+- **Disease**: Any condition or disease the user wants to address (e.g., anxiety, chronic pain, insomnia)
+- **Symptom**: Specific symptoms the user is experiencing (e.g., racing thoughts, muscle tension, difficulty sleeping)
+- **Additional Instructions**: Any specific preferences or guidance (e.g., focus on breathing, gentle guidance, visualization preferences)
 
-### Duration Options
-- 5 minutes
-- 10 minutes
-- 15 minutes
-- 20 minutes
-- 30 minutes
-
-### Mood Options
-- Calm & Peaceful
-- Energized & Alert
-- Tired & Drained
-- Anxious & Restless
-- Focused & Determined
-- Emotional & Sensitive
-- Neutral & Balanced
+### Meditation Structure
+The app follows a 5-section quantum healing meditation structure:
+1. **Introduction**: Quantum healing topic introduction tied to user inputs
+2. **Settling**: Initial relaxation techniques with <break> tag
+3. **Further Relaxation**: Deeper relaxation with <break> tag  
+4. **Visualization**: Healing visualization tied to user's condition
+5. **Conclusion**: Gentle ending of meditation
 
 ## Security Notes
 

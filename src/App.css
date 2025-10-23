@@ -329,6 +329,27 @@
   display: inline-block;
 }
 
+/* ElevenLabs tag indicators */
+.breathing-indicator {
+  background: rgba(116, 185, 255, 0.2);
+  color: #74b9ff;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  margin: 0 0.3rem;
+  display: inline-block;
+}
+
+.whisper-indicator {
+  background: rgba(162, 155, 254, 0.2);
+  color: #a29bfe;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  margin: 0 0.3rem;
+  display: inline-block;
+}
+
 .chapters-section {
   text-align: left;
   margin-top: 2rem;

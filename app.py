@@ -16,6 +16,10 @@ import re
 from dotenv import load_dotenv
 import logging
 
+# Configure logging first
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Configure FFmpeg path for pydub (only if pydub is available)
 if PYDUB_AVAILABLE:
     ffmpeg_path = os.path.join(os.environ.get('LOCALAPPDATA', ''), 
@@ -30,21 +34,30 @@ if PYDUB_AVAILABLE:
     else:
         print("⚠️ FFmpeg not found, pydub will use system defaults")
 
-load_dotenv()
+# Load environment variables, but don't fail if .env doesn't exist
+try:
+    load_dotenv()
+except Exception as e:
+    logger.warning(f"Could not load .env file: {e}")
+    logger.info("Using system environment variables or defaults")
 
 app = Flask(__name__, static_folder='public')
 CORS(app)
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 # Initialize OpenAI client
-openai_client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+if not OPENAI_API_KEY or OPENAI_API_KEY == 'your_openai_api_key_here':
+    logger.warning("OpenAI API key not set. Set OPENAI_API_KEY environment variable.")
+    openai_client = None
+else:
+    openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
 # ElevenLabs API key
 ELEVENLABS_API_KEY = os.getenv('ELEVENLABS_API_KEY')
-set_api_key(ELEVENLABS_API_KEY)
+if not ELEVENLABS_API_KEY or ELEVENLABS_API_KEY == 'your_elevenlabs_api_key_here':
+    logger.warning("ElevenLabs API key not set. Set ELEVENLABS_API_KEY environment variable.")
+else:
+    set_api_key(ELEVENLABS_API_KEY)
 
 # Simple password protection
 APP_PASSWORD = os.getenv('APP_PASSWORD', 'meditation2024')
@@ -73,40 +86,27 @@ def serve_download_file(filename):
         logger.error(f"Error serving static file: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-def generate_meditation_text(focus_area, duration, mood):
+def generate_meditation_text(disease, symptom, additional_instruction):
     """Generate meditation text using OpenAI"""
     try:
-        # Create meditation prompt with SSML support
-        prompt = f"""
-        Create a personalized meditation script with the following specifications:
-        - Focus Area: {focus_area}
-        - Duration: {duration}
-        - Mood/Energy: {mood}
-        
-        Please structure the meditation into exactly 3 chapters, each marked with clear tags:
-        
-        [CHAPTER_1_START]
-        [CHAPTER_1_END]
-        
-        [CHAPTER_2_START]
-        [CHAPTER_2_END]
-        
-        [CHAPTER_3_START]
-        [CHAPTER_3_END]
-        
-        Each chapter should be approximately {int(duration.split()[0]) // 3} minutes long when spoken at a calm pace.
-        Make the meditation deeply personal and tailored to the user's needs.
-        Include breathing exercises, visualization, and mindfulness techniques.
-        
-        IMPORTANT: Use SSML tags for speech control:
-        - Use <prosody rate="slow">text</prosody> for slower speech
-        - Use <prosody rate="x-slow">text</prosody> for very slow speech
-        - Use <emphasis level="strong">text</emphasis> for emphasis
-        - Use <break time="2s"/> for pauses
-        - Use <prosody pitch="low">text</prosody> for lower pitch
-        
-        Example: "Take a deep breath <break time="3s"/> and <emphasis level="strong">feel</emphasis> the calm <prosody rate="slow">flowing through your body</prosody>."
-        """
+        if not openai_client:
+            raise Exception("OpenAI API key not configured. Please set OPENAI_API_KEY environment variable.")
+        # Create meditation prompt following the new structure
+        prompt = f"""#Instruction: write a 10-minute meditation following the below structure. In that meditation, include elevenlabs tags such as [inhale], [exhale], [pause] or [whisper]. To not make it too fast paced, make sure to include a [pause 2 seconds] tag after each sentence. Using "..." also slows the pace down. Take the user inputs into account in the relevant parts of the meditation, as described. Avoid using "now" too much to progress the meditation forward. 
+
+#User input: 
+##Disease: {disease}
+##Symptom: {symptom}
+##additional instruction: {additional_instruction}
+
+#output: output only the meditation itself with the relevant tags, without saying anything else or without including section titles 
+
+#structure of the meditation with instructions for each section: 
+##section 1: Introduction to the topic. The general topic is quantum healing. Select a topic at random addressed by Deepak Chopra in his Quantum Healing book without mentioning that book in the meditation. Tie in this general topic with the disease, symptom and additional instruction given by the user above. 
+##section 2: start of the meditation, settle the user. Choose any of common techniques to do so. Leave some extra time/silence at the end of this section to allow the user to relax further in silence. End this section with the following tag: <break>
+##section 3: further relaxation. Choose any of common techniques to do so. Leave some extra time/silence at the end of this section to allow the user to relax further in silence. End this section with the following tag: <break>
+##section 4: visualisation. Introduce the visualisation technique, tie it to the disease, symptom and additional instruction of the user and then start. Choose any of common visualisation techniques to do so. 
+##section 5: end of meditation."""
     
         # Generate meditation text using OpenAI
         response = openai_client.chat.completions.create(
@@ -136,21 +136,21 @@ def generate_meditation():
             return jsonify({"error": "Invalid password"}), 401
         
         # Extract user inputs
-        focus_area = data.get('focus_area', '')
-        duration = data.get('duration', '')
-        mood = data.get('mood', '')
+        disease = data.get('disease', '')
+        symptom = data.get('symptom', '')
+        additional_instruction = data.get('additional_instruction', '')
         
-        if not all([focus_area, duration, mood]):
+        if not all([disease, symptom, additional_instruction]):
             return jsonify({"error": "Missing required fields"}), 400
         
-        logger.info(f"Generating meditation for: focus={focus_area}, duration={duration}, mood={mood}")
+        logger.info(f"Generating meditation for: disease={disease}, symptom={symptom}, additional_instruction={additional_instruction}")
         
         if USE_MOCK_DATA:
             # HYBRID MODE - Use real OpenAI text generation but skip TTS
             logger.info("Using hybrid mode: Real OpenAI text + Mock audio")
             
             # Generate real meditation text using OpenAI
-            meditation_text = generate_meditation_text(focus_area, duration, mood)
+            meditation_text = generate_meditation_text(disease, symptom, additional_instruction)
 
             # Parse chapters from the real meditation text
             chapters = parse_chapters(meditation_text)
@@ -188,7 +188,7 @@ def generate_meditation():
             logger.info("Using real APIs (OpenAI + ElevenLabs)")
             
             # Generate meditation text using OpenAI
-            meditation_text = generate_meditation_text(focus_area, duration, mood)
+            meditation_text = generate_meditation_text(disease, symptom, additional_instruction)
             
             # Parse chapters from the generated text
             chapters = parse_chapters(meditation_text)
@@ -222,18 +222,45 @@ def generate_meditation():
         return jsonify({"error": str(e)}), 500
 
 def parse_chapters(text):
-    """Parse meditation text into 3 chapters based on tags"""
+    """Parse meditation text into 3 chapters based on <break> tags"""
     chapters = []
     
-    # Find all chapter sections
-    chapter_pattern = r'\[CHAPTER_(\d+)_START\](.*?)\[CHAPTER_\d+_END\]'
-    matches = re.findall(chapter_pattern, text, re.DOTALL)
+    # Split the text by <break> tags
+    parts = re.split(r'<break>', text, flags=re.IGNORECASE)
     
-    for match in matches:
-        chapter_num, content = match
-        # Clean up the content
-        content = content.strip()
-        chapters.append(content)
+    # We expect exactly 3 chapters (2 <break> tags create 3 sections)
+    if len(parts) >= 3:
+        # Take the first 3 parts as chapters
+        for i in range(3):
+            content = parts[i].strip()
+            chapters.append(content)
+    else:
+        # Fallback: if we don't have enough <break> tags, split by sections
+        # Look for section markers or split by paragraphs
+        paragraphs = text.split('\n\n')
+        if len(paragraphs) >= 3:
+            # Distribute paragraphs across 3 chapters
+            chunk_size = len(paragraphs) // 3
+            for i in range(3):
+                start_idx = i * chunk_size
+                if i == 2:  # Last chapter gets remaining paragraphs
+                    end_idx = len(paragraphs)
+                else:
+                    end_idx = (i + 1) * chunk_size
+                content = '\n\n'.join(paragraphs[start_idx:end_idx]).strip()
+                chapters.append(content)
+        else:
+            # If we still don't have enough content, just split the text into 3 equal parts
+            text_length = len(text)
+            chunk_size = text_length // 3
+            for i in range(3):
+                start_idx = i * chunk_size
+                if i == 2:  # Last chapter gets remaining text
+                    end_idx = text_length
+                else:
+                    end_idx = (i + 1) * chunk_size
+                content = text[start_idx:end_idx].strip()
+                chapters.append(content)
     
     return chapters
 
@@ -294,8 +321,8 @@ def create_final_meditation(audio_files):
         return None
         
     try:
-        # Create 1 minute of silence
-        silence = AudioSegment.silent(duration=60000)  # 60 seconds
+        # Create 1 minute of silence for breaks between chapters
+        silence_break = AudioSegment.silent(duration=60000)  # 60 seconds
         
         # Load background music
         background_music_path = "background_music.mp3"  # Place your background music file here
@@ -326,9 +353,9 @@ def create_final_meditation(audio_files):
             # Add chapter audio
             final_audio += chapter_audio
             
-            # Add silence between chapters (except after the last one)
+            # Add 1-minute silence break between chapters (except after the last one)
             if i < len(chapter_audios) - 1:
-                final_audio += silence
+                final_audio += silence_break
         
         # Extend background music to match the length of the meditation
         background_music = background_music[:len(final_audio)]
