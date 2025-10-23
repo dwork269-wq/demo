@@ -91,6 +91,14 @@ The app will be available at `http://localhost:3000`
    - `ELEVENLABS_API_KEY`: Your ElevenLabs API key
    - `APP_PASSWORD`: Your chosen password
 
+### Important: Python Version Compatibility
+
+The app includes a `runtime.txt` file specifying Python 3.11.9 for compatibility with `pydub`. If you encounter audio processing issues:
+
+1. **Check Python Version**: Ensure Render is using Python 3.11.x
+2. **Alternative**: If Python 3.13+ is used, the app will fall back to mock data mode
+3. **System Dependencies**: Render may need additional system packages for audio processing
+
 ### Frontend Deployment
 
 1. **Create a new Static Site on Render**

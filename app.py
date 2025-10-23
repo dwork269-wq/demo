@@ -3,22 +3,32 @@ from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from openai import OpenAI
 from elevenlabs import generate, save, set_api_key
-from pydub import AudioSegment
-# from pydub.silence import make_chunks  # Not needed for this implementation
+try:
+    from pydub import AudioSegment
+    PYDUB_AVAILABLE = True
+    print("✅ pydub imported successfully")
+except ImportError as e:
+    print(f"⚠️ Warning: pydub not available: {e}")
+    PYDUB_AVAILABLE = False
+    AudioSegment = None
 import tempfile
 import re
 from dotenv import load_dotenv
 import logging
 
-# Configure FFmpeg path for pydub
-ffmpeg_path = os.path.join(os.environ.get('LOCALAPPDATA', ''), 
-                          'Microsoft', 'WinGet', 'Packages', 
-                          'Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe', 
-                          'ffmpeg-8.0-full_build', 'bin', 'ffmpeg.exe')
-if os.path.exists(ffmpeg_path):
-    AudioSegment.converter = ffmpeg_path
-    AudioSegment.ffmpeg = ffmpeg_path
-    AudioSegment.ffprobe = ffmpeg_path.replace('ffmpeg.exe', 'ffprobe.exe')
+# Configure FFmpeg path for pydub (only if pydub is available)
+if PYDUB_AVAILABLE:
+    ffmpeg_path = os.path.join(os.environ.get('LOCALAPPDATA', ''), 
+                              'Microsoft', 'WinGet', 'Packages', 
+                              'Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe', 
+                              'ffmpeg-8.0-full_build', 'bin', 'ffmpeg.exe')
+    if os.path.exists(ffmpeg_path):
+        AudioSegment.converter = ffmpeg_path
+        AudioSegment.ffmpeg = ffmpeg_path
+        AudioSegment.ffprobe = ffmpeg_path.replace('ffmpeg.exe', 'ffprobe.exe')
+        print("✅ FFmpeg configured for pydub")
+    else:
+        print("⚠️ FFmpeg not found, pydub will use system defaults")
 
 load_dotenv()
 
@@ -299,6 +309,10 @@ def text_to_speech(text, filename):
 
 def create_final_meditation(audio_files):
     """Combine audio files with silence and background music"""
+    if not PYDUB_AVAILABLE:
+        logger.error("pydub is not available - cannot create final meditation")
+        return None
+        
     try:
         # Create 1 minute of silence
         silence = AudioSegment.silent(duration=60000)  # 60 seconds
