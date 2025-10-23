@@ -22,7 +22,7 @@ if os.path.exists(ffmpeg_path):
 
 load_dotenv()
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='public')
 CORS(app)
 
 # Configure logging
@@ -45,6 +45,23 @@ USE_MOCK_DATA = True  # Set to False when you have API keys
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({"status": "healthy", "message": "Meditation App API is running"})
+
+@app.route('/download/<filename>')
+def serve_download_file(filename):
+    """Serve download files as static content"""
+    try:
+        file_path = os.path.join('public', 'download', filename)
+        
+        if os.path.exists(file_path):
+            logger.info(f"Serving static file: {file_path}")
+            return send_file(file_path, as_attachment=True, download_name=f"meditation_{filename}")
+        else:
+            logger.warning(f"File not found: {file_path}")
+            return jsonify({"error": "File not found"}), 404
+            
+    except Exception as e:
+        logger.error(f"Error serving static file: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/generate-meditation', methods=['POST'])
 def generate_meditation():

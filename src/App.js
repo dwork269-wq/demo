@@ -85,7 +85,8 @@ function App() {
     setMeditation(null);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/generate-meditation', formData);
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      const response = await axios.post(`${apiUrl}/api/generate-meditation`, formData);
       setMeditation(response.data);
       console.log(response.data);
     } catch (err) {
@@ -216,7 +217,7 @@ function App() {
 
             <div className="meditation-player">
               <audio controls className="audio-player">
-                <source src={meditation.audio_url} type="audio/mpeg" />
+                <source src={`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${meditation.audio_url}`} type="audio/mpeg" />
                 Your browser does not support the audio element.
               </audio>
             </div>

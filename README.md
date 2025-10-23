@@ -101,6 +101,13 @@ The app will be available at `http://localhost:3000`
 4. **Add environment variable**:
    - `REACT_APP_API_URL`: Your backend URL (e.g., `https://your-app.onrender.com`)
 
+### File Structure
+
+The app creates MP3 files in `public/download/` directory:
+- **Backend**: Creates files in `public/download/`
+- **Frontend**: Serves files via `/download/<filename>` endpoint
+- **Audio Player**: Uses full URL to access files
+
 ## API Endpoints
 
 ### `POST /api/generate-meditation`
