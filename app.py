@@ -92,7 +92,7 @@ def generate_meditation_text(disease, symptom, additional_instruction):
         if not openai_client:
             raise Exception("OpenAI API key not configured. Please set OPENAI_API_KEY environment variable.")
         # Create meditation prompt following the new structure
-        prompt = f"""#Instruction: write a 10-minute meditation following the below structure. In that meditation, include elevenlabs tags such as [inhale], [exhale], [pause] or [whisper]. To not make it too fast paced, make sure to include a [pause 2 seconds] tag after each sentence. Using "..." also slows the pace down. Take the user inputs into account in the relevant parts of the meditation, as described. Avoid using "now" too much to progress the meditation forward. 
+        prompt = f"""#Instruction: write a comprehensive 10-minute meditation following the below structure. This meditation should be detailed and extensive to fill the full 10 minutes when spoken at a calm, slow pace. Include elevenlabs tags such as [inhale], [exhale], [pause] or [whisper]. To not make it too fast paced, make sure to include a [pause 2 seconds] tag after each sentence. Using "..." also slows the pace down. Take the user inputs into account in the relevant parts of the meditation, as described. Avoid using "now" too much to progress the meditation forward. 
 
 #User input: 
 ##Disease: {disease}
@@ -101,12 +101,16 @@ def generate_meditation_text(disease, symptom, additional_instruction):
 
 #output: output only the meditation itself with the relevant tags, without saying anything else or without including section titles 
 
-#structure of the meditation with instructions for each section: 
-##section 1: Introduction to the topic. The general topic is quantum healing. Select a topic at random addressed by Deepak Chopra in his Quantum Healing book without mentioning that book in the meditation. Tie in this general topic with the disease, symptom and additional instruction given by the user above. 
-##section 2: start of the meditation, settle the user. Choose any of common techniques to do so. Leave some extra time/silence at the end of this section to allow the user to relax further in silence. End this section with the following tag: <break>
-##section 3: further relaxation. Choose any of common techniques to do so. Leave some extra time/silence at the end of this section to allow the user to relax further in silence. End this section with the following tag: <break>
-##section 4: visualisation. Introduce the visualisation technique, tie it to the disease, symptom and additional instruction of the user and then start. Choose any of common visualisation techniques to do so. 
-##section 5: end of meditation."""
+#structure of the meditation with detailed instructions for each section: 
+##section 1 (2-3 minutes): Introduction to the topic. The general topic is quantum healing. Select a topic at random addressed by Deepak Chopra in his Quantum Healing book without mentioning that book in the meditation. Tie in this general topic with the disease, symptom and additional instruction given by the user above. Be very detailed and expansive in your explanation. Include multiple paragraphs with rich descriptions of quantum healing principles, energy fields, cellular consciousness, and how they relate to the user's specific condition. Use flowing, poetic language that creates a sense of wonder and possibility.
+
+##section 2 (2-3 minutes): Start of the meditation, settle the user. Choose any of common techniques to do so. Be very detailed in guiding the user through progressive relaxation. Include specific body parts, breathing techniques, and mindfulness practices. Describe sensations, feelings, and experiences in great detail. Use multiple paragraphs to guide them through each step slowly and thoroughly. Leave some extra time/silence at the end of this section to allow the user to relax further in silence. End this section with the following tag: <break>
+
+##section 3 (2-3 minutes): Further relaxation. Choose any of common techniques to do so. Go deeper into relaxation techniques, perhaps including body scanning, progressive muscle relaxation, or guided imagery. Be very detailed and descriptive about each step. Include multiple paragraphs with rich descriptions of the relaxation process, sensations, and inner experiences. Use flowing language that helps the user sink deeper into relaxation. Leave some extra time/silence at the end of this section to allow the user to relax further in silence. End this section with the following tag: <break>
+
+##section 4 (2-3 minutes): Visualization. Introduce the visualization technique, tie it to the disease, symptom and additional instruction of the user and then start. Choose any of common visualization techniques to do so. Be extremely detailed in your visualization guidance. Create vivid, multi-sensory experiences. Include detailed descriptions of colors, textures, sounds, temperatures, and emotional states. Guide the user through a complete healing journey with rich imagery and detailed instructions. Use multiple paragraphs to build the visualization slowly and thoroughly.
+
+##section 5 (1-2 minutes): End of meditation. Gently guide the user back to awareness with detailed instructions about returning to their body, opening their eyes, and integrating the healing experience. Be specific about how they should feel and what they should notice about their condition after the meditation."""
     
         # Generate meditation text using OpenAI
         response = openai_client.chat.completions.create(
@@ -115,7 +119,7 @@ def generate_meditation_text(disease, symptom, additional_instruction):
                 {"role": "system", "content": "You are an expert meditation guide who creates personalized, transformative meditation experiences."},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=2000,
+            max_tokens=4000,
             temperature=0.7
         )
         
