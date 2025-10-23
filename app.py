@@ -49,8 +49,8 @@ set_api_key(ELEVENLABS_API_KEY)
 # Simple password protection
 APP_PASSWORD = os.getenv('APP_PASSWORD', 'meditation2024')
 
-# Toggle between mock and real APIs
-USE_MOCK_DATA = True  # Set to False when you have API keys
+# Toggle between hybrid and real APIs
+USE_MOCK_DATA = True  # Set to False when you want to use real TTS (expensive)
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
@@ -73,6 +73,60 @@ def serve_download_file(filename):
         logger.error(f"Error serving static file: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+def generate_meditation_text(focus_area, duration, mood):
+    """Generate meditation text using OpenAI"""
+    try:
+        # Create meditation prompt with SSML support
+        prompt = f"""
+        Create a personalized meditation script with the following specifications:
+        - Focus Area: {focus_area}
+        - Duration: {duration}
+        - Mood/Energy: {mood}
+        
+        Please structure the meditation into exactly 3 chapters, each marked with clear tags:
+        
+        [CHAPTER_1_START]
+        [CHAPTER_1_END]
+        
+        [CHAPTER_2_START]
+        [CHAPTER_2_END]
+        
+        [CHAPTER_3_START]
+        [CHAPTER_3_END]
+        
+        Each chapter should be approximately {int(duration.split()[0]) // 3} minutes long when spoken at a calm pace.
+        Make the meditation deeply personal and tailored to the user's needs.
+        Include breathing exercises, visualization, and mindfulness techniques.
+        
+        IMPORTANT: Use SSML tags for speech control:
+        - Use <prosody rate="slow">text</prosody> for slower speech
+        - Use <prosody rate="x-slow">text</prosody> for very slow speech
+        - Use <emphasis level="strong">text</emphasis> for emphasis
+        - Use <break time="2s"/> for pauses
+        - Use <prosody pitch="low">text</prosody> for lower pitch
+        
+        Example: "Take a deep breath <break time="3s"/> and <emphasis level="strong">feel</emphasis> the calm <prosody rate="slow">flowing through your body</prosody>."
+        """
+    
+        # Generate meditation text using OpenAI
+        response = openai_client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are an expert meditation guide who creates personalized, transformative meditation experiences."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=2000,
+            temperature=0.7
+        )
+        
+        meditation_text = response.choices[0].message.content
+        logger.info("Meditation text generated successfully")
+        return meditation_text
+        
+    except Exception as e:
+        logger.error(f"Error generating meditation text: {str(e)}")
+        raise
+
 @app.route('/api/generate-meditation', methods=['POST'])
 def generate_meditation():
     try:
@@ -92,45 +146,14 @@ def generate_meditation():
         logger.info(f"Generating meditation for: focus={focus_area}, duration={duration}, mood={mood}")
         
         if USE_MOCK_DATA:
-            # MOCK RESPONSE - Use when API keys are not available
-            logger.info("Using mock data (API keys not available)")
+            # HYBRID MODE - Use real OpenAI text generation but skip TTS
+            logger.info("Using hybrid mode: Real OpenAI text + Mock audio")
             
-            mock_meditation_text = f"""[CHAPTER_1_START]
-**Welcome to Your Personal {focus_area.title()} Journey**
+            # Generate real meditation text using OpenAI
+            meditation_text = generate_meditation_text(focus_area, duration, mood)
 
-Take a moment to settle into this space. <break time="3s"/> Feel the weight of your body supported by the surface beneath you. <prosody rate="slow">Breathe deeply and allow yourself to arrive fully in this moment.</prosody>
-
-As we begin this {duration} meditation focused on {focus_area}, notice how you're feeling right now. <emphasis level="strong">There's no need to change anything</emphasis> - simply observe with gentle curiosity.
-
-<prosody pitch="low">Let your breathing become your anchor</prosody> to this present moment. <break time="2s"/> Inhale slowly through your nose, <break time="1s"/> and exhale gently through your mouth.
-[CHAPTER_1_END]
-
-[CHAPTER_2_START]
-**Deepening Your Practice**
-
-Now, as we move deeper into this meditation, imagine a warm, golden light surrounding your body. <prosody rate="slow">This light represents the calm and peace you're cultivating within.</prosody>
-
-*Feel this light gently penetrating every cell of your being*, bringing with it a sense of {mood.replace(' and ', ' and ').lower()}. <break time="3s"/>
-
-<emphasis level="strong">With each breath, you're creating space</emphasis> for whatever you need most right now. Whether that's rest, healing, clarity, or simply being present with what is.
-
-<prosody rate="x-slow">Allow any thoughts or sensations to arise and pass like clouds in a vast sky.</prosody> You are the sky - vast, open, and unchanging.
-[CHAPTER_2_END]
-
-[CHAPTER_3_START]
-**Integration and Gratitude**
-
-As we gently bring this meditation to a close, take a moment to appreciate yourself for showing up. <break time="2s"/> *You've given yourself the gift of presence and mindfulness.*
-
-<prosody pitch="low">Feel gratitude for your body</prosody> - for your breath, your heartbeat, your ability to experience this moment. <emphasis level="strong">You are exactly where you need to be.</emphasis>
-
-Slowly begin to wiggle your fingers and toes. <break time="1s"/> Gently move your head from side to side. <break time="1s"/> When you're ready, open your eyes and carry this sense of peace with you into your day.
-
-*Remember, this calm is always available to you* - you can return to this feeling anytime by simply taking a few conscious breaths.
-[CHAPTER_3_END]"""
-
-            # Parse chapters from the mock text
-            chapters = parse_chapters(mock_meditation_text)
+            # Parse chapters from the real meditation text
+            chapters = parse_chapters(meditation_text)
             
             # Create a mock audio file
             download_dir = os.path.join('public', 'download')
@@ -151,11 +174,11 @@ Slowly begin to wiggle your fingers and toes. <break time="1s"/> Gently move you
                 with open(mock_file_path, 'w') as f:
                     f.write("Mock audio file")
             
-            logger.info("Mock meditation generated successfully")
+            logger.info("Hybrid meditation generated successfully (Real OpenAI + Mock audio)")
             
             return jsonify({
                 "success": True,
-                "meditation_text": mock_meditation_text,
+                "meditation_text": meditation_text,
                 "chapters": chapters,
                 "audio_url": f"/download/{mock_filename}"
             })
@@ -164,51 +187,8 @@ Slowly begin to wiggle your fingers and toes. <break time="1s"/> Gently move you
             # REAL API CALLS - Use when you have API keys
             logger.info("Using real APIs (OpenAI + ElevenLabs)")
             
-            # Create meditation prompt with SSML support
-            prompt = f"""
-            Create a personalized meditation script with the following specifications:
-            - Focus Area: {focus_area}
-            - Duration: {duration}
-            - Mood/Energy: {mood}
-            
-            Please structure the meditation into exactly 3 chapters, each marked with clear tags:
-            
-            [CHAPTER_1_START]
-            [CHAPTER_1_END]
-            
-            [CHAPTER_2_START]
-            [CHAPTER_2_END]
-            
-            [CHAPTER_3_START]
-            [CHAPTER_3_END]
-            
-            Each chapter should be approximately {int(duration.split()[0]) // 3} minutes long when spoken at a calm pace.
-            Make the meditation deeply personal and tailored to the user's needs.
-            Include breathing exercises, visualization, and mindfulness techniques.
-            
-            IMPORTANT: Use SSML tags for speech control:
-            - Use <prosody rate="slow">text</prosody> for slower speech
-            - Use <prosody rate="x-slow">text</prosody> for very slow speech
-            - Use <emphasis level="strong">text</emphasis> for emphasis
-            - Use <break time="2s"/> for pauses
-            - Use <prosody pitch="low">text</prosody> for lower pitch
-            
-            Example: "Take a deep breath <break time="3s"/> and <emphasis level="strong">feel</emphasis> the calm <prosody rate="slow">flowing through your body</prosody>."
-            """
-        
             # Generate meditation text using OpenAI
-            response = openai_client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": "You are an expert meditation guide who creates personalized, transformative meditation experiences."},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=2000,
-                temperature=0.7
-            )
-            
-            meditation_text = response.choices[0].message.content
-            logger.info("Meditation text generated successfully")
+            meditation_text = generate_meditation_text(focus_area, duration, mood)
             
             # Parse chapters from the generated text
             chapters = parse_chapters(meditation_text)
